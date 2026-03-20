@@ -10,9 +10,9 @@ plugins {
     id 'application'
 }
 
-project.ext.lwjglVersion = "3.4.0-SNAPSHOT"
+project.ext.lwjglVersion = "3.4.1"
 project.ext.lwjglNatives = "natives-windows"
-project.ext.jomlVersion = "1.10.9-SNAPSHOT"
+project.ext.jomlVersion = "1.10.8"
 
 repositories {
 	mavenCentral()

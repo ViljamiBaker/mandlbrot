@@ -1,4 +1,4 @@
-package mandlbrot.renderer.util;
+ package mandlbrot.renderer.util;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_FALSE;
