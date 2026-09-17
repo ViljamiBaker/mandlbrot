@@ -1,5 +1,86 @@
 #version 330 core
 
+struct complex {
+    float real;
+    float comp;
+};
+
+struct polar {
+    float mag;
+    float theta;
+};
+
+const complex _0 = complex(0.0,0.0);
+const complex _i = complex(0.0,1.0);
+
+float cmag(complex c){
+    return sqrt(c.real*c.real+c.comp*c.comp);
+}
+float cang(complex c){
+    return atan(c.comp,c.real);
+}
+
+polar toPolar(complex c){
+    return polar(cmag(c), cang(c));
+}
+
+complex toNorm(polar p){
+    return complex(p.mag * cos(p.theta), p.mag * sin(p.theta));
+}
+
+polar pmult(polar p0, polar p1){
+    return polar(p0.mag*p1.mag, p0.theta+p1.theta);
+}
+polar pdiv(polar p0, polar p1){
+    return polar(p0.mag/p1.mag, p0.theta-p1.theta);
+}
+
+complex plog(polar p0){
+    return complex(log(p0.mag),p0.theta);
+}
+
+complex clog(complex c){
+    return plog(toPolar(c));
+}
+
+complex cadd(complex c0, complex c1){
+    return complex(c0.real + c1.real, c0.comp + c1.comp);
+}
+
+complex csub(complex c0, complex c1){
+    return complex(c0.real - c1.real, c0.comp - c1.comp);
+}
+
+complex cdiv(complex c0, complex c1){
+    return toNorm(pdiv(toPolar(c0),toPolar(c1)));
+}
+
+complex cmult(complex c0, complex c1){
+    return complex(c0.real*c1.real-c0.comp*c1.comp,c0.real*c1.comp+c1.real*c0.comp);
+}
+
+complex cexp(complex c){
+    return cmult(complex(exp(c.real),0.0),complex(cos(c.comp), sin(c.comp)));
+}
+
+complex csin(complex c){
+    return cdiv(csub(cexp(cmult(c,_i)),cexp(csub(_0,cmult(c,_i)))),complex(0.0,2.0));
+}
+
+complex clogbase(complex c, complex b){
+    return cdiv(clog(c),clog(b));
+}
+
+complex cexponent(complex a, complex e){
+    if(abs(a.real)<0.001&&abs(a.comp)<0.001)
+        return _0;
+    return cexp(cmult(e,clog(a)));
+}
+
+vec2 toVec(complex c){
+    return vec2(c.real,c.comp);
+}
+
 float PI = 3.14159265358979;
 
 out vec4 FragColor;
@@ -18,7 +99,7 @@ uniform vec2 ZSetR;
 uniform vec2 ZSetI;
 
 uniform vec2 ESetR;
-//uniform vec2 ESetI;
+uniform vec2 ESetI;
 
 uniform vec2 CSetR;
 uniform vec2 CSetI;
@@ -28,7 +109,7 @@ uniform vec2 CSetI;
 // z_0 = Z
 // E = 2 for now
 
-vec2 Step( vec2 z, vec2 c, float E);
+vec2 Step( vec2 z, vec2 c, vec2 E);
 vec2 ImagToReal(vec2 ab, float n);
 vec3 RGBFROMHSV(vec3 hsv);
 //vec2 compExp(vec2 a, vec2 b);
@@ -37,7 +118,7 @@ void main()
 {
     vec2 Z = vec2(0);
     vec2 C = vec2(0);
-    float E = 0;
+    vec2 E = vec2(0);
 
     bool xIsUsed = false;
     bool yIsUsed = false;
@@ -91,13 +172,25 @@ void main()
     if(ESetR.x == -1){
         if(xIsUsed){FragColor = vec4(0,1,0,1); return;}
         xIsUsed = true;
-        E = FragPos.x;
+        E.x = FragPos.x;
     }else if(ESetR.x == -2){
         if(yIsUsed){FragColor = vec4(1.0, 0.0, 0.87, 1.0); return;}
         yIsUsed = true;
-        E = FragPos.y;
+        E.x = FragPos.y;
     }else{
-        E = ESetR.y;
+        E.x = ESetR.y;
+    }
+
+    if(ESetI.x == -1){
+        if(xIsUsed){FragColor = vec4(0,1,0,1); return;}
+        xIsUsed = true;
+        E.y = FragPos.x;
+    }else if(ESetI.x == -2){
+        if(yIsUsed){FragColor = vec4(1.0, 0.0, 0.87, 1.0); return;}
+        yIsUsed = true;
+        E.y = FragPos.y;
+    }else{
+        E.y = ESetI.y;
     }
 
     if(!xIsUsed||!yIsUsed){FragColor = vec4(1,0,0,1); return;}
@@ -127,13 +220,13 @@ void main()
     //FragColor = vec4(1.0);
 }
 
-vec2 Step(vec2 z, vec2 c, float E){
-    if(E == 2.0f){
-        return vec2(pow(z.x,2.0)-pow(z.y,2)+c.x,2.0*z.x*z.y+c.y);
-    }
-    vec2 ztothee = ImagToReal(z,E);
+vec2 Step(vec2 z, vec2 c, vec2 E){
+    //if(E.x == 2.0f && E.y == 0.0f){
+    //    return vec2(pow(z.x,2.0)-pow(z.y,2)+c.x,2.0*z.x*z.y+c.y);
+    //}
+    vec2 ztothee = toVec(cadd(cexponent(complex(z.x,z.y),complex(E.x,E.y)),complex(c.x,c.y)));
 
-    return ztothee + c;
+    return ztothee;
 }
 
 vec3 RGBFROMHSV(vec3 hsv){
@@ -156,14 +249,6 @@ vec3 RGBFROMHSV(vec3 hsv){
     if (i==4) {return vec3(t, w, v);}
     if (i==5) {return vec3(v, w, q);}
     return vec3(0,0,0);
-}
-
-vec2 ImagToReal(vec2 ab, float n){
-    float a = ab.x;
-    float b = ab.y;
-    float r = sqrt(a*a+b*b);
-    float theta = atan(b/a);
-    return vec2(pow(r,n)*cos(n*theta),pow(r,n)*sin(n*theta));
 }
 
 /*vec2 compExp(vec2 e, vec2 z){

@@ -59,8 +59,8 @@ public class Renderer {
 	//(ZSetR,ZSetI,CSetR,CSetI,ESetR)
 	//{ 0, 0,-1,-2, 0};
 	//{ 0, 0, 0, 0, 2};
-	public static int[] setters = { 0, 0,-1,-2, 0};
-	public static float[] values= { 0, 0, 0, 0, 2};
+	public static int[] setters = { 0, 0,-1,-2, 0, 0};
+	public static float[] values= { 0, 0, 0, 0, 2, 0};
 
 	static Vector2f camPos = new Vector2f();
 	static float camZoom = 1.0f;
@@ -177,6 +177,7 @@ public class Renderer {
 			shaderProgram1.setUniform("CSetR", new Vector2f(setters[2],values[2]));
 			shaderProgram1.setUniform("CSetI", new Vector2f(setters[3],values[3]));
 			shaderProgram1.setUniform("ESetR", new Vector2f(setters[4],values[4]));
+			shaderProgram1.setUniform("ESetI", new Vector2f(setters[5],values[5]));
 			shaderProgram1.setUniform("CamPos", camPos);
 			shaderProgram1.setFloat("CamZoom", camZoom);
 
@@ -384,6 +385,7 @@ public class Renderer {
 			values[2] = 0;
 			values[3] = 0;
 			values[4] = 2;
+			values[5] = 0;
 			camPos = new Vector2f();
 			camZoom = 1.0f;
 		}
