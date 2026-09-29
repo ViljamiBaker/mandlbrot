@@ -1,4 +1,5 @@
 #version 330 core
+#define PI2 6.28318530718
 
 struct complex {
     float real;
@@ -35,12 +36,12 @@ polar pdiv(polar p0, polar p1){
     return polar(p0.mag/p1.mag, p0.theta-p1.theta);
 }
 
-complex plog(polar p0){
-    return complex(log(p0.mag),p0.theta);
+complex plog(polar p0, int K){
+    return complex(log(p0.mag),p0.theta + K*PI2);
 }
 
-complex clog(complex c){
-    return plog(toPolar(c));
+complex clog(complex c, int K){
+    return plog(toPolar(c), K);
 }
 
 complex cadd(complex c0, complex c1){
@@ -67,14 +68,14 @@ complex csin(complex c){
     return cdiv(csub(cexp(cmult(c,_i)),cexp(csub(_0,cmult(c,_i)))),complex(0.0,2.0));
 }
 
-complex clogbase(complex c, complex b){
-    return cdiv(clog(c),clog(b));
+complex clogbase(complex c, complex b, int K){
+    return cdiv(clog(c, K),clog(b, K));
 }
 
-complex cexponent(complex a, complex e){
+complex cexponent(complex a, complex e, int K){
     if(abs(a.real)<0.001&&abs(a.comp)<0.001)
         return _0;
-    return cexp(cmult(e,clog(a)));
+    return cexp(cmult(e,clog(a, K)));
 }
 
 vec2 toVec(complex c){
@@ -104,12 +105,14 @@ uniform vec2 ESetI;
 uniform vec2 CSetR;
 uniform vec2 CSetI;
 
+uniform vec2 SetK;
+
 // equ is written as
 // z_n+1 = z_n^E + C
 // z_0 = Z
 // E = 2 for now
 
-vec2 Step( vec2 z, vec2 c, vec2 E);
+vec2 Step( vec2 z, vec2 c, vec2 E, int K);
 vec2 ImagToReal(vec2 ab, float n);
 vec3 RGBFROMHSV(vec3 hsv);
 //vec2 compExp(vec2 a, vec2 b);
@@ -119,6 +122,7 @@ void main()
     vec2 Z = vec2(0);
     vec2 C = vec2(0);
     vec2 E = vec2(0);
+    int K = 0;
 
     bool xIsUsed = false;
     bool yIsUsed = false;
@@ -193,6 +197,18 @@ void main()
         E.y = ESetI.y;
     }
 
+    if(SetK.x == -1){
+        if(xIsUsed){FragColor = vec4(0,1,0,1); return;}
+        xIsUsed = true;
+        K = int(FragPos.x * 10.0);
+    }else if(SetK.x == -2){
+        if(yIsUsed){FragColor = vec4(1.0, 0.0, 0.87, 1.0); return;}
+        yIsUsed = true;
+        K = int(FragPos.y * 10.0);
+    }else{
+        K = int(SetK.y * 10.0);
+    }
+
     if(!xIsUsed||!yIsUsed){FragColor = vec4(1,0,0,1); return;}
 
     int stepsUntilEscape = -1;
@@ -200,7 +216,7 @@ void main()
     vec2 z = vec2(Z);
 
     for(int i = 0; i < iterations; i++) {
-        z = Step(z,C, E);
+        z = Step(z,C,E,K);
         if(length(z)>bailout){
             stepsUntilEscape = i;
             break;
@@ -214,17 +230,15 @@ void main()
 
     float ratio = (float(stepsUntilEscape)/100.0);
 
-
-
     FragColor = vec4(RGBFROMHSV(vec3(mod(ratio,1.0),1.0,1.0)),1.0);
     //FragColor = vec4(1.0);
 }
 
-vec2 Step(vec2 z, vec2 c, vec2 E){
+vec2 Step(vec2 z, vec2 c, vec2 E, int K){
     //if(E.x == 2.0f && E.y == 0.0f){
     //    return vec2(pow(z.x,2.0)-pow(z.y,2)+c.x,2.0*z.x*z.y+c.y);
     //}
-    vec2 ztothee = toVec(cadd(cexponent(complex(z.x,z.y),complex(E.x,E.y)),complex(c.x,c.y)));
+    vec2 ztothee = toVec(cadd(cexponent(complex(z.x,z.y),complex(E.x,E.y), K),complex(c.x,c.y)));
 
     return ztothee;
 }
